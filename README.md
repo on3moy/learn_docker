@@ -6,6 +6,15 @@ This repo provides a hands-on walkthrough of how to:
 - Create an animated, stylish Flask web app with a **random quote and emoji button**
 - Understand how Docker builds, runs, maps ports, and can share environments
 
+Repo Folder Structure
+
+```
+learn_docker/
+│   ├── app.py
+│   ├── Dockerfile
+│   └── README.md
+```
+
 ---
 
 ## 🧠 Learning Objectives
