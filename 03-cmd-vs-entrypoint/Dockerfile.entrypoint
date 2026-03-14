@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1
+# ─────────────────────────────────────────────────────────────────────────────
+# Module 03 — CMD vs ENTRYPOINT
+# Dockerfile.entrypoint — demonstrates ENTRYPOINT-only behaviour
+#
+# When a container uses ENTRYPOINT without CMD, any arguments passed after the
+# image name in `docker run` are APPENDED to the ENTRYPOINT command — they
+# do not replace it. The entrypoint always runs.
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY args.py .
+
+RUN addgroup --system appuser \
+    && adduser --system --no-create-home --ingroup appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# ── ENTRYPOINT ────────────────────────────────────────────────────────────────
+# ENTRYPOINT sets the FIXED executable that always runs when the container
+# starts. Unlike CMD, it cannot be replaced by arguments to `docker run`.
+# Arguments passed to `docker run` are APPENDED to ENTRYPOINT instead.
+#
+# ── WHAT "APPENDED" MEANS ────────────────────────────────────────────────────
+# docker run ep-demo:1.0.0
+#   → runs: python args.py          (entrypoint only, no extra args)
+#
+# docker run ep-demo:1.0.0 hello world
+#   → runs: python args.py hello world   (args APPENDED, not replacing)
+#
+# docker run ep-demo:1.0.0 --help
+#   → runs: python args.py --help   (flag appended to entrypoint)
+#
+# docker run --entrypoint /bin/sh ep-demo:1.0.0
+#   → runs: /bin/sh   (ENTRYPOINT can be overridden but requires --entrypoint
+#                       flag explicitly — not a simple trailing argument)
+#
+# This makes ENTRYPOINT ideal for container images that act like executables —
+# the image IS the command, and extra arguments parameterise it.
+#
+# ── EXEC FORM (used here) vs SHELL FORM ──────────────────────────────────────
+# Exec form:   ENTRYPOINT ["python", "args.py"]
+#   python is PID 1. Signals go directly to python. Graceful shutdown works.
+#   docker run arguments are appended correctly as extra list elements.
+#
+# Shell form:  ENTRYPOINT python args.py
+#   Docker wraps in: /bin/sh -c "python args.py"
+#   /bin/sh is PID 1. Signals do NOT reach python.
+#   WORSE: docker run arguments are IGNORED entirely because /bin/sh -c does
+#   not receive them. Shell form ENTRYPOINT is essentially broken for CLIs.
+#   Never use shell form for ENTRYPOINT.
+ENTRYPOINT ["python", "args.py"]
+
+HEALTHCHECK NONE

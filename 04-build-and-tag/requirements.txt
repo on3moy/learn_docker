@@ -1,0 +1,5 @@
+# requirements.txt — pinned Python dependencies for 04-build-and-tag
+# Pin exact versions for reproducible Docker layer caching.
+# See 01-first-dockerfile/requirements.txt for the full rationale.
+
+flask==3.1.0

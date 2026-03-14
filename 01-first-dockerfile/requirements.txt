@@ -1,0 +1,39 @@
+# requirements.txt — pinned Python dependencies for 01-first-dockerfile
+#
+# ── WHY PIN EXACT VERSIONS? ───────────────────────────────────────────────────
+#
+# Docker builds images in layers. The layer produced by `pip install` is cached
+# and reused in subsequent builds — BUT only if the inputs to that layer are
+# identical. If you write just `flask` (no version pin), pip will silently
+# install the newest available Flask release every time the cache is cold
+# (new machine, new CI runner, cache evicted). This means:
+#
+#   1. Your image is NOT reproducible. The same Dockerfile built today vs next
+#      month may produce images running different Flask versions.
+#
+#   2. A Flask minor-version upgrade can quietly break your app's behaviour,
+#      introduce deprecation warnings, or remove an API you depend on — with
+#      no change to your source code.
+#
+#   3. In a team, different developers end up running different images. The
+#      classic "works on my machine" problem, now inside containers.
+#
+# Pinning with == solves all three. The CI server, your laptop, and the
+# production host all install the exact same wheel file.
+#
+# ── HOW TO FIND THE CURRENT PINNED VERSION ────────────────────────────────────
+#
+#   # Install the package (in a local venv), then inspect:
+#   pip install flask
+#   pip show flask        # look at the "Version:" line
+#
+#   # Or freeze all installed packages to get pin-ready output:
+#   pip freeze
+#
+# ── UPDATING PINS ─────────────────────────────────────────────────────────────
+#
+# When you want to upgrade, do it deliberately:
+#   pip install "flask>=3.2" && pip freeze > requirements.txt
+# Review the diff, test, then commit. No surprise upgrades.
+
+flask==3.1.0

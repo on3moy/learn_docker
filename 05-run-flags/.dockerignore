@@ -1,0 +1,16 @@
+# .dockerignore for 05-run-flags
+#
+# Note: sample.env is NOT excluded here because it contains only placeholder
+# values and serves as documentation. In a real project, never include a
+# .env file with actual secrets in the image — exclude it here and pass
+# secrets at runtime via `docker run --env-file` or a secrets manager.
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+notes.md
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,9 @@
+# requirements.txt — pinned Python dependencies for 02-image-layers
+#
+# Pinning exact versions is mandatory in Dockerfiles.
+# See 01-first-dockerfile/requirements.txt for the full explanation of why.
+#
+# Short version: unpinned deps produce non-reproducible images and silent
+# upgrades that break apps without any code change.
+
+flask==3.1.0

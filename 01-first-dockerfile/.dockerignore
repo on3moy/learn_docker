@@ -1,0 +1,43 @@
+# .dockerignore — controls what Docker includes in the build context
+#
+# When you run `docker build`, Docker bundles everything in the build context
+# directory (the `.` at the end of `docker build -t name .`) and sends it to
+# the Docker daemon as a tar archive over a Unix socket.
+#
+# Even if a file is never referenced by any Dockerfile instruction, it is still
+# sent unless excluded here. A bloated build context:
+#   - Slows every single build, even when all image layers are cached
+#   - Can accidentally include secrets that end up baked into the image
+#   - Wastes network bandwidth in remote CI/CD pipelines
+#
+# This is a minimal .dockerignore for a learning module. Module 06 goes deep
+# on .dockerignore — read that module for the full story.
+
+# ── Python bytecode cache ─────────────────────────────────────────────────────
+# Python generates .pyc files at runtime; they are machine-specific and
+# regenerated automatically. Never include them in an image.
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Version control ───────────────────────────────────────────────────────────
+# .git contains the full commit history of your repository.
+# Including it would inflate the build context and expose your source history
+# to anyone who runs `docker inspect` or extracts the image layers.
+.git/
+.gitignore
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+# Never bake secrets into an image. Pass them at runtime via -e or --env-file.
+*.env
+.env
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+# notes.md is for you, the developer. The running container does not need it.
+notes.md
+
+# ── Editor / OS artifacts ─────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

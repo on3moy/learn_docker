@@ -1,0 +1,13 @@
+# .dockerignore for 03-cmd-vs-entrypoint
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+*.env
+.env
+notes.md
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

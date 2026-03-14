@@ -1,0 +1,67 @@
+# syntax=docker/dockerfile:1
+# ─────────────────────────────────────────────────────────────────────────────
+# Module 03 — CMD vs ENTRYPOINT
+# Dockerfile.both — the RECOMMENDED production pattern: ENTRYPOINT + CMD
+#
+# Using both instructions together gives you:
+#   - A fixed executable that always runs (ENTRYPOINT)
+#   - Default arguments that work out of the box (CMD)
+#   - The ability to override the defaults at runtime without --entrypoint
+#
+# This is the pattern you should use in production Dockerfiles.
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY args.py .
+
+RUN addgroup --system appuser \
+    && adduser --system --no-create-home --ingroup appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# ── ENTRYPOINT + CMD — THE PRODUCTION PATTERN ────────────────────────────────
+#
+# When both are present:
+#   ENTRYPOINT defines the executable — it is always the process that runs.
+#   CMD defines the DEFAULT ARGUMENTS to that executable.
+#   CMD can be overridden at runtime by passing arguments after the image name.
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  Combination table                                                       │
+# │                                                                          │
+# │  ENTRYPOINT    CMD         docker run args   What runs                  │
+# │  ─────────────────────────────────────────────────────────────────────  │
+# │  ["python",    ["args.py"] (none)            python args.py             │
+# │   "args.py"]                                                             │
+# │                                                                          │
+# │  ["python",    ["args.py"] foo bar           python args.py foo bar     │
+# │   "args.py"]              ← CMD replaced by runtime args               │
+# │                                                                          │
+# │  ["python",    ["args.py"] --help            python args.py --help      │
+# │   "args.py"]                                                             │
+# └──────────────────────────────────────────────────────────────────────────┘
+#
+# REAL-WORLD EXAMPLE:
+# A web server image might use:
+#   ENTRYPOINT ["gunicorn"]
+#   CMD ["--workers", "4", "--bind", "0.0.0.0:8000", "app:app"]
+#
+# Default run:  gunicorn --workers 4 --bind 0.0.0.0:8000 app:app
+# Override:     docker run myapp:1.0.0 --workers 2 --bind 0.0.0.0:8000 app:app
+#   (replaces CMD with the new --workers 2 args without touching ENTRYPOINT)
+#
+# ── BOTH MUST USE EXEC FORM ───────────────────────────────────────────────────
+# If ENTRYPOINT is in shell form and CMD is in exec form (or vice versa),
+# the combination does NOT work as described above. Docker concatenates them
+# as strings, not lists, producing garbled commands. Always use exec form
+# (JSON array syntax) for both.
+ENTRYPOINT ["python", "args.py"]
+CMD ["--default-arg", "from-CMD"]
+
+HEALTHCHECK NONE

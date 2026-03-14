@@ -1,0 +1,36 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+# Byte-compiled / cached Python files — generated at runtime, not useful to commit
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments — dependencies are reproducible via requirements.txt
+.venv/
+venv/
+env/
+
+# Distribution / packaging artifacts
+*.egg-info/
+dist/
+build/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Local docker-compose overrides stay on the developer's machine
+docker-compose.override.yml
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+# NEVER commit real secrets to version control.
+# The secrets.env file in 06-dockerignore/ is intentionally fake placeholder
+# content used as a teaching example — real credentials must never be committed.
+*.env
+.env
+# Exception: allow the teaching example fake secrets file through
+!06-dockerignore/secrets.env
+
+# ── OS / Editor artifacts ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

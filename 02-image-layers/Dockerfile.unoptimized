@@ -1,0 +1,87 @@
+# syntax=docker/dockerfile:1
+# ─────────────────────────────────────────────────────────────────────────────
+# Module 02 — Image Layers
+# Dockerfile.unoptimized — demonstrates POOR layer-cache usage
+#
+# The naive pattern: copy everything first, then install dependencies.
+# This file exists to show you what NOT to do and why.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── FROM ──────────────────────────────────────────────────────────────────────
+# Pinned to a specific tag — never "latest". See module 01 for a full
+# explanation of floating tags and why they destroy reproducibility.
+FROM python:3.12-slim
+
+# ── ENV ───────────────────────────────────────────────────────────────────────
+# Both env vars are mandatory in every Python container.
+# See module 01 for a detailed explanation of each.
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# ── WORKDIR ───────────────────────────────────────────────────────────────────
+WORKDIR /app
+
+# ── THE PROBLEM: COPY EVERYTHING FIRST ───────────────────────────────────────
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  HOW DOCKER'S LAYER CACHE WORKS                                          │
+# │                                                                          │
+# │  Every instruction in a Dockerfile creates a new image layer.            │
+# │  A layer is an immutable snapshot of filesystem changes.                 │
+# │                                                                          │
+# │  Docker caches each layer by computing a cache key from:                 │
+# │    1. The instruction itself (e.g. "RUN pip install ...")                │
+# │    2. ALL files referenced by that instruction                           │
+# │    3. The cache key of the PREVIOUS layer (parent)                       │
+# │                                                                          │
+# │  If the cache key matches a previous build, Docker reuses the            │
+# │  cached layer and skips re-running the instruction entirely.             │
+# │                                                                          │
+# │  If the cache key does NOT match (a "cache miss"), Docker re-runs the    │
+# │  instruction AND invalidates the cache for every layer below it.         │
+# │  This cascade is the key insight: once a layer is invalidated, ALL       │
+# │  subsequent layers must also be re-built, regardless of whether their    │
+# │  own inputs changed.                                                     │
+# └──────────────────────────────────────────────────────────────────────────┘
+#
+# WHAT HAPPENS HERE (the bad pattern):
+#
+# Layer 4: COPY . .
+#   Cache key includes the content of EVERY file in the build context.
+#   You edit app.py → cache key changes → cache MISS → layer rebuilt.
+#
+# Layer 5: RUN pip install ...
+#   Its parent layer (Layer 4) was just rebuilt → cache MISS regardless.
+#   pip downloads all packages from PyPI again. Every. Single. Time.
+#   Even though requirements.txt hasn't changed at all.
+#
+# Result: editing one line of app.py forces a full pip install on every build.
+# On a laptop this takes ~10–30 seconds. In CI it wastes runner minutes.
+# As requirements grow, the cost compounds.
+COPY . .
+
+# ── RUN pip install ───────────────────────────────────────────────────────────
+# This layer is doomed to be a cache MISS on virtually every build because
+# the COPY . . layer above it will almost always be invalidated by source
+# code changes. See the explanation above.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ── Non-root user ─────────────────────────────────────────────────────────────
+# Always switch to a non-root user before CMD/ENTRYPOINT.
+# See module 01 for the full security explanation.
+RUN addgroup --system appuser \
+    && adduser --system --no-create-home --ingroup appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# ── EXPOSE ────────────────────────────────────────────────────────────────────
+EXPOSE 5000
+
+# ── HEALTHCHECK ───────────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget -q --spider http://localhost:5000/health || exit 1
+
+# ── CMD ───────────────────────────────────────────────────────────────────────
+# Exec form — python is PID 1 and receives signals directly.
+# See module 01 for the shell form vs exec form explanation.
+CMD ["python", "app.py"]

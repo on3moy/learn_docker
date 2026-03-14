@@ -1,0 +1,4 @@
+# requirements.txt — pinned Python dependencies for 05-run-flags
+# Pin exact versions for reproducible Docker layer caching.
+
+flask==3.1.0

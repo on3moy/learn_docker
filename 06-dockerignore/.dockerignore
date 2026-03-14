@@ -1,0 +1,130 @@
+# .dockerignore — Module 06 (the .dockerignore deep-dive)
+#
+# ── WHAT IS THE BUILD CONTEXT? ───────────────────────────────────────────────
+# When you run `docker build .`, Docker:
+#   1. Bundles everything in the current directory (.) into a tar archive.
+#   2. Sends that archive (the "build context") to the Docker daemon over a
+#      Unix socket (or TCP in remote builds).
+#   3. The daemon unpacks the archive and makes it available to Dockerfile
+#      COPY/ADD instructions.
+#
+# This bundling happens BEFORE Docker even reads the Dockerfile.
+# Every file and directory in the context is transferred regardless of whether
+# any instruction ever references it. Large contexts = slow every single build.
+#
+# .dockerignore tells Docker what to EXCLUDE from the bundle before it is sent.
+# Excluded files never reach the daemon, so they cannot be COPYed, cannot
+# bloat the image, and cannot appear in build logs or layer caches.
+#
+# ── SYNTAX ───────────────────────────────────────────────────────────────────
+# Same pattern syntax as .gitignore:
+#   *          matches any string (except path separators)
+#   **         matches any path (including separators)
+#   ?          matches any single character
+#   !pattern   negates (re-includes) a previously excluded match
+#   # comment  lines starting with # are comments
+
+# ── secrets.env ──────────────────────────────────────────────────────────────
+# Exclude the fake secrets file (and any real .env files in the project).
+#
+# WHY: A .env file typically contains database passwords, API keys, and other
+# credentials used in local development. If this file reaches the Docker daemon:
+#   - A `COPY . .` instruction bakes it into the image layer — readable by
+#     anyone who pulls or runs the image.
+#   - Even without COPY, the file was transmitted and may appear in build logs
+#     or be visible in intermediate layer caches.
+#   - An image pushed to a registry leaks those credentials to everyone who
+#     has pull access.
+# RULE: Never bake secrets into an image. Pass them at runtime:
+#   docker run --env-file secrets.env myimage:1.0.0
+#   or use a secrets manager (AWS Secrets Manager, HashiCorp Vault, Docker secrets).
+secrets.env
+*.env
+.env
+
+# ── big-data/ ─────────────────────────────────────────────────────────────────
+# Exclude the large data directory.
+#
+# WHY: The build context is sent to the Docker daemon as a tar archive over a
+# socket. Large files in the context cause:
+#   - Slow build startup: every `docker build` transfers those files first,
+#     even before reading the Dockerfile, even when all layers are cached.
+#   - Bloated images if COPY . . is used: a Python web server does not need
+#     gigabytes of training data baked into its image — it should fetch data
+#     from object storage (S3, GCS) at runtime.
+#   - Wasted CI/CD bandwidth: remote runners (GitHub Actions, GitLab CI)
+#     transmit the context over the network — GB-scale contexts waste minutes.
+# RULE: Large data files belong in cloud object storage or a volume, not in
+# the image. Exclude any data directory here.
+big-data/
+
+# ── __pycache__ ───────────────────────────────────────────────────────────────
+# Exclude Python bytecode cache directories.
+#
+# WHY: Python compiles .py files to .pyc bytecode and caches them in
+# __pycache__/ directories. These files are:
+#   - Platform-specific: .pyc compiled on macOS will not work on Linux inside
+#     the container — Python regenerates them automatically on first import anyway.
+#   - Wasteful: including them inflates the build context and the image for zero
+#     benefit, since they are recreated at runtime.
+#   - Cluttering: if you bind-mount source code, __pycache__ files created by
+#     the container appear on your host filesystem, owned by the container user.
+# We also set PYTHONDONTWRITEBYTECODE=1 in the Dockerfile so Python does not
+# generate them at all inside the container.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── .git ──────────────────────────────────────────────────────────────────────
+# Exclude the Git repository metadata directory.
+#
+# WHY: .git contains the complete commit history of your repository — every
+# file you have ever committed, every commit message, every branch. Including it:
+#   - Inflates the build context significantly (can be hundreds of MB for
+#     long-lived repos or those with large binary history).
+#   - Exposes your complete development history to anyone who inspects the image
+#     or extracts its layers with `docker save`.
+#   - Is never needed at runtime — the running container has no use for git history.
+.git/
+.gitignore
+.gitattributes
+
+# ── Developer documentation ───────────────────────────────────────────────────
+# Exclude notes and README files.
+#
+# WHY: These files are valuable to developers reading the source code but are
+# irrelevant to the running container. Including them adds unnecessary bytes to
+# the build context and, if COPYed, to the image layer.
+notes.md
+README.md
+*.md
+
+# ── Editor / IDE configuration ────────────────────────────────────────────────
+# Exclude IDE and editor config directories.
+#
+# WHY: These files contain personal editor preferences, workspace settings, and
+# sometimes credentials (e.g. `.idea/` may contain database connection strings).
+# They are never needed inside a container.
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS artifacts ─────────────────────────────────────────────────────────────
+# macOS and Windows create these files automatically in every directory.
+# They are never useful inside a container.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Python virtual environment ────────────────────────────────────────────────
+# If a developer has a local venv, exclude it — it is OS-specific and large.
+#
+# WHY: A virtual environment created on macOS or Windows contains OS-specific
+# compiled binaries that will not work on Linux inside the container. The
+# Dockerfile installs the correct Linux versions via pip. A local venv in the
+# build context would just add hundreds of MB to the transfer for nothing.
+.venv/
+venv/
+env/

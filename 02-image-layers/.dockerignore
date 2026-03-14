@@ -1,0 +1,25 @@
+# .dockerignore for 02-image-layers
+# Excludes files that should not be sent to the Docker daemon as build context.
+# See 06-dockerignore/ for the full deep-dive on .dockerignore.
+
+# Python bytecode — machine-specific, regenerated at runtime
+__pycache__/
+*.pyc
+*.pyo
+
+# Version control — full commit history is never needed in an image
+.git/
+.gitignore
+
+# Secrets — never bake credentials into an image
+*.env
+.env
+
+# Developer notes — informative for humans, irrelevant at runtime
+notes.md
+
+# Editor artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

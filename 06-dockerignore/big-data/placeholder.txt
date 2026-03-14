@@ -1,0 +1,39 @@
+# big-data/placeholder.txt
+#
+# This file represents a large data directory that a developer might keep
+# alongside their project code — training datasets, CSV exports, binary
+# model weights, media files, etc.
+#
+# ── WHY THIS DIRECTORY EXISTS ────────────────────────────────────────────────
+# In a real project this might be:
+#   - A 2 GB machine learning training dataset
+#   - Thousands of image files for a computer vision project
+#   - SQL dump files from a database export
+#   - Video assets for a media processing pipeline
+#
+# ── THE PROBLEM WITHOUT .dockerignore ────────────────────────────────────────
+# The `docker build` command bundles everything in the build context directory
+# and sends it to the Docker daemon over a Unix socket (or TCP in remote builds).
+#
+# If big-data/ is not excluded:
+#   - Every `docker build` transmits those gigabytes over the socket, even
+#     if no Dockerfile instruction ever COPYs them. The transfer happens FIRST,
+#     before Docker even reads the Dockerfile.
+#   - Build times balloon from seconds to minutes.
+#   - If a COPY . . instruction exists, the data files bloat the image — a
+#     Python web server does not need training data baked into its image.
+#   - In remote CI/CD builds (GitHub Actions, GitLab CI), the context is
+#     sent over the network — wasting bandwidth and runner minutes.
+#
+# ── THE SOLUTION ─────────────────────────────────────────────────────────────
+# Add `big-data/` to .dockerignore. See the .dockerignore file in this
+# module for the full exclusion list with comments explaining each entry.
+#
+# In a real project, large data files belong in:
+#   - Cloud object storage (S3, GCS, Azure Blob) — downloaded at runtime
+#   - A data versioning system (DVC, MLflow artifacts)
+#   - A separate Docker volume — not baked into the image
+
+This is a placeholder simulating a large data file.
+In a real project this might be gigabytes of training data, CSV files,
+binary model weights, or media assets.
