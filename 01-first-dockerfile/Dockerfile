@@ -163,6 +163,9 @@ WORKDIR /app
 # COPY is explicit, predictable, and does exactly one thing. Prefer it always.
 COPY requirements.txt .
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 
 # ── RUN ───────────────────────────────────────────────────────────────────────
 # RUN executes a shell command DURING the image build, not at container runtime.
@@ -186,8 +189,7 @@ COPY requirements.txt .
 #
 # -r requirements.txt — install all packages listed in requirements.txt.
 #                   -r is shorthand for --requirement.
-RUN pip install --no-cache-dir -r requirements.txt
-
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # ── COPY application code ─────────────────────────────────────────────────────
 # Now we copy the application code AFTER installing dependencies.
@@ -218,21 +220,30 @@ COPY app.py .
 #      Your Flask app needs no privileges at all: serving on port 5000 (≥1024)
 #      does not require root on Linux. Never grant privileges you don't use.
 #
-# addgroup --system appuser
-#   Creates a new system group named "appuser".
+# addgroup --system appgroup
+#   Creates a new system group named "appgroup".
 #   --system: marks it as a system group (GID < 1000, no password entry).
+#   A group is a way to assign shared permissions to multiple users.
+#   We create a dedicated group so the user belongs to a controlled,
+#   minimal-privilege group rather than a generic one like "users" or "root".
 #
-# adduser --system --no-create-home --ingroup appuser appuser
-#   Creates a new system user named "appuser".
-#   --system:         no password, no login shell — this is a service account.
-#   --no-create-home: skip creating /home/appuser (saves a tiny bit of space).
-#   --ingroup appuser: assigns the user to the group we just created.
-RUN addgroup --system appuser \
-    && adduser --system --no-create-home --ingroup appuser appuser
+# adduser --system --no-create-home --ingroup appgroup appuser
+#   Creates a new system user named "appuser" and adds it to "appgroup".
+#   --system:          no password, no login shell — this is a service account,
+#                      not a human user. It cannot be used to log in interactively.
+#   --no-create-home:  skip creating /home/appuser (saves a tiny bit of space;
+#                      a service account has no need for a home directory).
+#   --ingroup appgroup: assigns appuser to the appgroup group we just created.
+#
+# NOTE ON NAMING: the group is "appgroup" and the user is "appuser" — two
+# distinct things. A group is a permission bucket; a user is the identity
+# the process runs as. Keeping the names different avoids confusion.
+RUN addgroup --system appgroup \
+    && adduser --system --no-create-home --ingroup appgroup appuser
 
 # Give appuser ownership of the working directory so the app can write
 # runtime files (logs, temp uploads, etc.) if needed.
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appgroup /app
 
 # Switch to the non-root user. All subsequent instructions and the container's
 # main process will run as appuser, not root.
