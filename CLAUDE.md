@@ -25,7 +25,9 @@ These apply to EVERY file in the repo without exception.
   Comment the difference between shell form and exec form and why exec form is preferred
   (signal handling, PID 1 behavior)
 - Never install packages as root without immediately cleaning the cache in the same RUN instruction.
-  Example: `RUN pip install --no-cache-dir -r requirements.txt` — comment every flag
+  Use uv (Astral) for all package installs — never plain pip. Pattern:
+  `COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv` then
+  `RUN uv pip install --system --no-cache -r requirements.txt` — comment every flag
 - Always pin base image digests in a comment next to the FROM line for production awareness,
   even if we use the tag form for readability in learning
 - Always set ENV PYTHONDONTWRITEBYTECODE=1 and ENV PYTHONUNBUFFERED=1 — comment exactly
@@ -83,11 +85,10 @@ docker-learn/
 │   ├── requirements.txt
 │   ├── .dockerignore
 │   └── notes.md
-├── 03-cmd-vs-entrypoint/
-│   ├── Dockerfile.cmd
-│   ├── Dockerfile.entrypoint
-│   ├── Dockerfile.both
-│   ├── args.py
+├── 03-volumes/
+│   ├── Dockerfile
+│   ├── app.py
+│   ├── requirements.txt
 │   ├── .dockerignore
 │   └── notes.md
 ├── 04-build-and-tag/
@@ -146,14 +147,22 @@ docker-learn/
   build once (cold), change app.py, build again — compare cache hit/miss behavior between
   the two Dockerfiles with the exact commands, flags explained, and what to observe in output
 
-### 03-cmd-vs-entrypoint
-- args.py: a Python script that prints sys.argv so runtime behavior is visible
-- Dockerfile.cmd: CMD only — comment how it is fully replaceable at runtime
-- Dockerfile.entrypoint: ENTRYPOINT only — comment how runtime args append, not replace
-- Dockerfile.both: ENTRYPOINT + CMD — comment that CMD becomes default args to ENTRYPOINT
-  and can still be overridden. This is the production-recommended pattern
-- Shell form vs exec form must be demonstrated and contrasted with comments on
-  signal handling and why exec form is always preferred
+### 03-volumes
+- Flask app (app.py) with POST /write, GET /read, DELETE /clear, GET /health endpoints
+  that read and write timestamped JSON files to /data (the volume mount point)
+- Dockerfile: creates /data, chowns it to appuser before VOLUME declaration, uses
+  VOLUME ["/data"] with an exhaustive comment block explaining what the instruction
+  does and does not do
+- notes.md must cover:
+  - The three storage types: named volumes, bind mounts, tmpfs
+  - Why container read-write layers are ephemeral (destroyed on docker rm)
+  - Full experiment: write data → stop and REMOVE container → start new container with
+    same named volume → prove data persists
+  - Every docker volume command: create, ls, inspect, rm, prune — per CLI standard
+  - Bind mount syntax (-v /host:/container and -v /host:/container:ro)
+  - --mount syntax as a verbose, explicit alternative to -v
+  - Decision guide: when to use named volume vs bind mount vs tmpfs
+  - Permission note: named volumes use image ownership; bind mounts use host ownership
 
 ### 04-build-and-tag
 - notes.md covers the full image lifecycle:

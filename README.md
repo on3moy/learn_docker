@@ -30,7 +30,7 @@ Work through the modules in numbered order. Each one builds on the concepts from
 |--------|---------------------|
 | [01-first-dockerfile](./01-first-dockerfile/) | Write your first Dockerfile from scratch. Understand every instruction: FROM, WORKDIR, COPY, RUN, EXPOSE, CMD, HEALTHCHECK, and the non-root user pattern. |
 | [02-image-layers](./02-image-layers/) | Understand Docker's layer cache. See exactly why instruction order is architectural rather than cosmetic, and how to arrange your Dockerfile to maximise cache hits and cut rebuild times. |
-| [03-cmd-vs-entrypoint](./03-cmd-vs-entrypoint/) | Demystify CMD vs ENTRYPOINT. Understand shell form vs exec form, signal handling, PID 1 behaviour, and the recommended ENTRYPOINT + CMD production pattern. |
+| [03-volumes](./03-volumes/) | Persist data beyond the container lifecycle. Learn named volumes vs bind mounts, every `docker volume` command, how Docker initialises volumes from image contents, and when to choose each storage type. |
 | [04-build-and-tag](./04-build-and-tag/) | Master the full image lifecycle: build, tag, list, remove, and prune. Learn semver and git-SHA tagging conventions and understand how tags map to registry push paths. |
 | [05-run-flags](./05-run-flags/) | Run containers like a professional. Cover every important `docker run` flag: detach, port mapping, env vars, volumes, naming, restart policies, and resource limits. |
 | [06-dockerignore](./06-dockerignore/) | Understand the Docker build context and why `.dockerignore` is not optional. Learn to exclude secrets, large files, and cache directories — and how to measure the impact. |
@@ -68,6 +68,23 @@ docker tag <source>:<tag> <target>:<newtag>
 # Inspect all metadata for an image as JSON (architecture, env vars, layers, etc.)
 docker inspect <name>:<tag>
 
+# ── VOLUME COMMANDS ───────────────────────────────────────────────────────────
+
+# Create a named volume Docker will manage
+docker volume create <name>
+
+# List all volumes (named and anonymous)
+docker volume ls
+
+# Show full metadata for a volume (Mountpoint, CreatedAt, Labels)
+docker volume inspect <name>
+
+# Permanently delete a named volume and all its data
+docker volume rm <name>
+
+# Remove all volumes not currently mounted by any container
+docker volume prune
+
 # ── CONTAINER COMMANDS ────────────────────────────────────────────────────────
 
 # Run a container in the foreground (your terminal is attached; Ctrl-C stops it)
@@ -84,6 +101,9 @@ docker run -e MY_VAR=value <name>:<tag>
 
 # Pass all variables from a file into the container
 docker run --env-file sample.env <name>:<tag>
+
+# Mount a named volume at a container path (Docker manages the host storage)
+docker run -v <volume-name>:/container/path <name>:<tag>
 
 # Bind-mount a host directory into the container (read-write)
 docker run -v /host/path:/container/path <name>:<tag>
@@ -137,7 +157,8 @@ docker exec -it <name-or-id> /bin/bash
 | Image layer caching | https://docs.docker.com/build/cache/ |
 | `.dockerignore` | https://docs.docker.com/reference/dockerfile/#dockerignore-file |
 | HEALTHCHECK | https://docs.docker.com/reference/dockerfile/#healthcheck |
-| CMD vs ENTRYPOINT | https://docs.docker.com/reference/dockerfile/#understand-how-cmd-and-entrypoint-interact |
+| Docker volumes | https://docs.docker.com/engine/storage/volumes/ |
+| Bind mounts | https://docs.docker.com/engine/storage/bind-mounts/ |
 | `docker image ls` | https://docs.docker.com/reference/cli/docker/image/ls/ |
 | Restart policies | https://docs.docker.com/engine/containers/start-containers-automatically/ |
 | Resource constraints | https://docs.docker.com/engine/containers/resource_constraints/ |

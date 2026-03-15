@@ -108,7 +108,7 @@ docker build -f Dockerfile.unoptimized -t layers-bad:1.0.0 .
 [3/8] ENV PYTHONUNBUFFERED=1           ← CACHED
 [4/8] WORKDIR /app                     ← CACHED
 [5/8] COPY . .                         ← CACHE MISS — app.py changed!
-[6/8] RUN pip install ...              ← CACHE MISS — parent layer changed!
+[6/8] RUN uv pip install ...           ← CACHE MISS — parent layer changed!
 [7/8] RUN addgroup ... adduser ...     ← CACHE MISS — parent layer changed!
 [8/8] USER appuser                     ← CACHE MISS — parent layer changed!
 ```
@@ -131,7 +131,7 @@ docker build -f Dockerfile.optimized -t layers-good:1.0.0 .
 [3/9] ENV PYTHONUNBUFFERED=1           ← CACHED
 [4/9] WORKDIR /app                     ← CACHED
 [5/9] COPY requirements.txt .          ← CACHED — requirements.txt unchanged!
-[6/9] RUN pip install ...              ← CACHED — requirements.txt unchanged!
+[6/9] RUN uv pip install ...           ← CACHED — requirements.txt unchanged!
 [7/9] COPY app.py .                    ← CACHE MISS — app.py changed
 [8/9] RUN addgroup ... adduser ...     ← rebuilt, but instantaneous
 [9/9] CMD ...                          ← rebuilt, instantaneous
@@ -174,6 +174,6 @@ the naive way again.
 2. Docker caches layers by content hash. A cache hit skips the instruction entirely.
 3. A cache miss cascades: all layers below the miss are also invalidated.
 4. The order of `COPY` and `RUN` instructions is architectural — it determines rebuild speed.
-5. The golden rule: copy `requirements.txt` first, run `pip install`, then copy source code.
+5. The golden rule: copy `requirements.txt` first, run `uv pip install`, then copy source code.
 
-**Next:** [03-cmd-vs-entrypoint](../03-cmd-vs-entrypoint/) — understand the difference between CMD and ENTRYPOINT and why exec form is always preferred.
+**Next:** [03-volumes](../03-volumes/) — understand Docker volumes and how to persist data beyond the container lifecycle.

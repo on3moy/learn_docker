@@ -21,6 +21,12 @@ ENV PYTHONUNBUFFERED=1
 # ── WORKDIR ───────────────────────────────────────────────────────────────────
 WORKDIR /app
 
+# ── Copy uv ───────────────────────────────────────────────────────────────────
+# Bring in the uv binary early. This layer is cheap (copies a single binary)
+# and will be cached on subsequent builds regardless of the cache misses below.
+# NOTE: Pin the tag in production (e.g. uv:0.5.11). :latest used for learning.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # ── THE PROBLEM: COPY EVERYTHING FIRST ───────────────────────────────────────
 #
 # ┌──────────────────────────────────────────────────────────────────────────┐
@@ -64,7 +70,7 @@ COPY . .
 # This layer is doomed to be a cache MISS on virtually every build because
 # the COPY . . layer above it will almost always be invalidated by source
 # code changes. See the explanation above.
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # ── Non-root user ─────────────────────────────────────────────────────────────
 # Always switch to a non-root user before CMD/ENTRYPOINT.

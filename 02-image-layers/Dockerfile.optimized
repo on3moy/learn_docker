@@ -45,10 +45,23 @@ WORKDIR /app
 # for the common case of editing application code.
 COPY requirements.txt .
 
+# ── Copy uv ───────────────────────────────────────────────────────────────────
+# Bring in the uv binary via a multi-stage COPY from the official uv image.
+# uv is a Rust-based drop-in replacement for pip — significantly faster on
+# cold installs. See module 01 for a full explanation of this pattern.
+# NOTE: Pin the tag in production (e.g. uv:0.5.11). :latest used for learning.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # ── STEP 2: Install dependencies (will be cached after the first build) ───────
-# --no-cache-dir: do not store downloaded wheels inside the image layer.
-# They would consume 50–150 MB of space with zero benefit in subsequent runs.
-RUN pip install --no-cache-dir -r requirements.txt
+# uv pip install --system --no-cache -r requirements.txt
+#   uv       — the uv package manager (Rust-based, faster than pip)
+#   pip      — uv's pip-compatibility subcommand; same flags as pip install
+#   install  — install packages
+#   --system — install into system Python, not a venv (container IS the isolation)
+#   --no-cache — do not write uv's download cache to the layer (same reason as
+#                pip's --no-cache-dir: the cache adds 50–150 MB for zero benefit)
+#   -r requirements.txt — install every package listed in requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # ── STEP 3: Copy application code (cache-miss here is cheap) ─────────────────
 # Invalidating this layer only forces Docker to re-copy app.py and re-run

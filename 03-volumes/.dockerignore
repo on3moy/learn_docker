@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Module 03 — Volumes
+# .dockerignore
+#
+# This file tells Docker which files and directories to EXCLUDE from the build
+# context before sending it to the Docker daemon. Even though the lesson focus
+# of this module is volumes, every module ships with a .dockerignore because
+# forgetting it in real projects leads to slow builds and bloated images.
+#
+# See module 06 for an in-depth lesson on .dockerignore and build context size.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Python bytecode cache — platform-specific, regenerated at runtime, never
+# needed in the image. Excluding it keeps layers clean and avoids confusing
+# "works on my machine" bytecode differences between developer laptops.
+__pycache__
+*.pyc
+*.pyo
+
+# Git history — exposes your entire commit history and inflates the build
+# context. The daemon has no use for it.
+.git
+.gitignore
+
+# Editor and OS noise — not part of the application.
+.DS_Store
+*.swp
+*.swo
+
+# Any local data directory that might exist on the host — we never want host
+# data baked into the image. Data belongs in volumes at runtime, not in layers.
+data/

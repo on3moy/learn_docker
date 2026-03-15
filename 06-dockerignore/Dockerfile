@@ -12,8 +12,15 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# Bring in the uv binary. See module 01 for a full explanation of this pattern.
+# NOTE: Pin the tag in production (e.g. uv:0.5.11). :latest used for learning.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# uv pip install --system --no-cache: drop-in for pip install --no-cache-dir.
+# --system installs into system Python (no venv needed inside a container).
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # COPY app.py specifically (not COPY . .) to demonstrate that even with a
 # selective COPY, the entire build context was still sent to the daemon.

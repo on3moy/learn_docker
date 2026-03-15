@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Module 03 — Volumes
+# requirements.txt
+#
+# WHY PIN EXACT VERSIONS?
+# ────────────────────────
+# Pinning to an exact version (e.g. flask==3.1.0 not flask>=3.0) ensures:
+#
+#   1. REPRODUCIBLE BUILDS — every `docker build`, on every machine, in every
+#      CI run, installs the exact same bytes. Without pinning, a new Flask
+#      release between your Monday build and Tuesday build could silently change
+#      behaviour. Docker's layer cache can hide this: the cache key is the
+#      content of requirements.txt, not the resolved package versions. If
+#      requirements.txt is unchanged, Docker reuses the cached install layer
+#      even if a newer package was published to PyPI.
+#
+#   2. CI/CD STABILITY — your pipeline is not broken by an upstream maintainer
+#      publishing a buggy patch release at 2 AM.
+#
+#   3. AUDIT TRAIL — `git blame requirements.txt` tells you exactly when and why
+#      a dependency was added or upgraded.
+#
+# To upgrade a package intentionally:
+#   uv pip install flask==3.2.0 --system   (then update this file manually)
+#   or use: uv pip compile requirements.in > requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Flask — the web framework used to serve HTTP endpoints.
+# 3.1.0 is the current stable release at the time this module was written.
+flask==3.1.0
